@@ -1,0 +1,255 @@
+:root {
+  --bg-color: #f4f8fa;
+  --text-color: #333;
+  --card-bg-color: #fff;
+  --primary-color: #3672f8;
+  --primary-hover-color: #2a5cce;
+  --secondary-color: #ffc107;
+  --danger-color: #dc3545;
+  --border-color: #e0e0e0;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --bg-color: #1a1a2e;
+  --text-color: #e0e0e0;
+  --card-bg-color: #16213e;
+  --primary-color: #0f3460;
+  --primary-hover-color: #2a5cce;
+  --border-color: #2a3b5e;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.container {
+  max-width: 960px;
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 30px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+#theme-toggle {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-color);
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 40px;
+}
+
+.task-panel h2 {
+  font-size: 20px;
+  margin-top: 0;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.task-setup, .task-list {
+  background-color: var(--card-bg-color);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  margin-bottom: 20px;
+}
+
+.task-setup form {
+  display: flex;
+  gap: 10px;
+}
+
+.task-setup input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.task-setup button {
+  padding: 12px 20px;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.task-setup button:hover {
+  background-color: var(--primary-hover-color);
+}
+
+.task-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-list li {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.task-list li:hover {
+  border-color: var(--primary-color);
+}
+
+.task-list li.selected {
+  border-color: var(--primary-color);
+  background-color: rgba(54, 114, 248, 0.1);
+  font-weight: 600;
+}
+
+.timer-panel {
+  background-color: var(--card-bg-color);
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.circle-container {
+  position: relative;
+  width: 250px;
+  height: 250px;
+  margin-bottom: 20px;
+}
+
+.circle-container svg {
+  transform: rotate(-90deg);
+}
+
+.bg-circle {
+  fill: none;
+  stroke: var(--border-color);
+  stroke-width: 20;
+}
+
+.progress-circle {
+  fill: none;
+  stroke: var(--primary-color);
+  stroke-width: 20;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+#time-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  font-weight: 600;
+}
+
+.timer-setup {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.timer-setup label {
+  margin-right: 10px;
+}
+
+.timer-setup select {
+  padding: 8px 12px;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.controls {
+  display: flex;
+  gap: 15px;
+}
+
+.controls button {
+  padding: 12px 25px;
+  margin: 0 5px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.controls button:active {
+  transform: scale(0.98);
+}
+
+#start {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+#start:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+#pause {
+  background-color: var(--secondary-color);
+  color: #212529;
+}
+
+#pause:disabled {
+  background-color: #e0a800;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+#reset {
+  background-color: var(--danger-color);
+  color: #fff;
+}
+
+#reset:disabled {
+  background-color: #c82333;
+  opacity: 0.7;
+  cursor: not-allowed;
+}

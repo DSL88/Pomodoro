@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pomodoro Moderno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Pomodoro</h1>
+      <button id="theme-toggle">🌙</button>
+    </header>
+
+    <main class="main-content">
+      <div class="task-panel">
+        <section class="task-setup">
+          <h2>Adicionar Tarefa</h2>
+          <form id="task-form">
+            <input type="text" id="task-name" placeholder="Nome da tarefa" required>
+            <button type="submit">Adicionar</button>
+          </form>
+        </section>
+
+        <section class="task-list">
+          <h2>Minhas Tarefas</h2>
+          <ul id="tasks"></ul>
+        </section>
+      </div>
+
+      <div class="timer-panel">
+        <section class="timer">
+          <div class="circle-container">
+            <svg id="timer-circle" width="250" height="250">
+              <circle class="bg-circle" cx="125" cy="125" r="115"/>
+              <circle id="progress" class="progress-circle" cx="125" cy="125" r="115" />
+            </svg>
+            <div id="time-display">25:00</div>
+          </div>
+          <div class="timer-setup">
+            <label for="time-select">Duração (min):</label>
+            <select id="time-select"></select>
+          </div>
+          <div class="controls">
+            <button id="start">Iniciar</button>
+            <button id="pause" disabled>Pausa</button>
+            <button id="reset" disabled>Reset</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
