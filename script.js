@@ -78,11 +78,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // SVG Circle Metrics
-  const RADIUS = 115;
-  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-  progressCircle.style.strokeDasharray = `${CIRCUMFERENCE}`;
-  progressCircle.style.strokeDashoffset = `0`;
+  // SVG Circle Metrics - Responsivo
+  let RADIUS = 115;
+  let CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  
+  function updateCircleMetrics() {
+    const screenWidth = window.innerWidth;
+    if (screenWidth <= 480) {
+      RADIUS = 75;
+    } else if (screenWidth <= 768) {
+      RADIUS = 85;
+    } else {
+      RADIUS = 115;
+    }
+    CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+    progressCircle.style.strokeDasharray = `${CIRCUMFERENCE}`;
+    updateProgress();
+  }
+  
+  // Inicializar métricas
+  updateCircleMetrics();
+  
+  // Atualizar métricas quando a tela for redimensionada
+  window.addEventListener('resize', updateCircleMetrics);
 
   // Funções de Tema
   function setTheme(theme) {
@@ -222,6 +240,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateDisplay() {
     timeDisplay.textContent = formatTime(remainingTime);
+    updateProgress();
+  }
+  
+  function updateProgress() {
     const offset = CIRCUMFERENCE - (remainingTime / initialTime) * CIRCUMFERENCE;
     progressCircle.style.strokeDashoffset = offset;
   }
@@ -302,6 +324,43 @@ document.addEventListener('DOMContentLoaded', () => {
     if (audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
+  }
+
+  // Melhorias para dispositivos móveis
+  function initMobileEnhancements() {
+    // Prevenir zoom duplo toque em iOS
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+    
+    // Melhorar feedback tátil se disponível
+    function vibrate(pattern = 50) {
+      if ('vibrate' in navigator) {
+        navigator.vibrate(pattern);
+      }
+    }
+    
+    // Adicionar vibração aos botões principais
+    startBtn.addEventListener('click', () => vibrate(50));
+    pauseBtn.addEventListener('click', () => vibrate(30));
+    resetBtn.addEventListener('click', () => vibrate([30, 30, 30]));
+    
+    // Adicionar vibração quando o timer termina
+    const originalBeep = beep;
+    beep = function(...args) {
+      vibrate([200, 100, 200, 100, 200]);
+      originalBeep.apply(this, args);
+    };
+  }
+  
+  // Inicializar melhorias móveis
+  if ('ontouchstart' in window) {
+    initMobileEnhancements();
   }
 
   // Event Listeners

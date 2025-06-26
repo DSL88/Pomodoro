@@ -37,6 +37,20 @@ body {
   padding: 0 20px;
 }
 
+@media (max-width: 768px) {
+  .container {
+    margin: 10px auto;
+    padding: 0 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    margin: 5px auto;
+    padding: 0 10px;
+  }
+}
+
 header {
   display: flex;
   justify-content: space-between;
@@ -49,6 +63,27 @@ header {
 header h1 {
   margin: 0;
   font-size: 24px;
+}
+
+@media (max-width: 768px) {
+  header {
+    margin-bottom: 20px;
+  }
+  
+  header h1 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  header {
+    margin-bottom: 15px;
+    padding: 5px 0;
+  }
+  
+  header h1 {
+    font-size: 18px;
+  }
 }
 
 #theme-toggle {
@@ -65,11 +100,39 @@ header h1 {
   gap: 40px;
 }
 
+/* Responsividade para tablets */
+@media (max-width: 768px) {
+  .main-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Responsividade para smartphones */
+@media (max-width: 480px) {
+  .main-content {
+    gap: 15px;
+  }
+}
+
 .task-panel h2 {
   font-size: 20px;
   margin-top: 0;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .task-panel h2 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-panel h2 {
+    font-size: 16px;
+    padding-bottom: 8px;
+  }
 }
 
 .task-setup, .task-list {
@@ -80,9 +143,30 @@ header h1 {
   margin-bottom: 20px;
 }
 
+@media (max-width: 768px) {
+  .task-setup, .task-list {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-setup, .task-list {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+}
+
 .task-setup form {
   display: flex;
   gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .task-setup form {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
 .task-setup input {
@@ -126,6 +210,14 @@ header h1 {
   transition: border-color 0.2s, background-color 0.2s;
 }
 
+@media (max-width: 480px) {
+  .task-list li {
+    padding: 10px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+}
+
 .task-list li:hover {
   border-color: var(--primary-color);
 }
@@ -146,6 +238,18 @@ header h1 {
   align-items: center;
 }
 
+@media (max-width: 768px) {
+  .timer-panel {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-panel {
+    padding: 15px;
+  }
+}
+
 .timer {
   display: flex;
   flex-direction: column;
@@ -157,6 +261,44 @@ header h1 {
   width: 250px;
   height: 250px;
   margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .circle-container {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 15px;
+  }
+  
+  .circle-container svg {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .bg-circle, .progress-circle {
+    cx: 100;
+    cy: 100;
+    r: 85;
+  }
+}
+
+@media (max-width: 480px) {
+  .circle-container {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .circle-container svg {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .bg-circle, .progress-circle {
+    cx: 90;
+    cy: 90;
+    r: 75;
+    stroke-width: 15;
+  }
 }
 
 .circle-container svg {
@@ -186,6 +328,18 @@ header h1 {
   font-weight: 600;
 }
 
+@media (max-width: 768px) {
+  #time-display {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  #time-display {
+    font-size: 28px;
+  }
+}
+
 .timer-setup {
   margin: 20px 0;
   text-align: center;
@@ -209,6 +363,27 @@ header h1 {
   gap: 15px;
 }
 
+@media (max-width: 768px) {
+  .controls {
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .controls {
+    gap: 8px;
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .controls button {
+    width: 100%;
+    margin: 0;
+  }
+}
+
 .controls button {
   padding: 12px 25px;
   margin: 0 5px;
@@ -218,6 +393,21 @@ header h1 {
   font-weight: 600;
   font-size: 16px;
   transition: background-color 0.2s, transform 0.1s;
+}
+
+@media (max-width: 768px) {
+  .controls button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .controls button {
+    padding: 12px;
+    font-size: 16px;
+    margin: 0;
+  }
 }
 
 .controls button:active {
@@ -313,6 +503,18 @@ header h1 {
   justify-content: center;
 }
 
+@media (max-width: 480px) {
+  .delete-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .delete-selected-btn,
+  .cancel-delete-btn {
+    width: 100%;
+  }
+}
+
 .delete-selected-btn {
   background-color: var(--danger-color);
   color: white;
@@ -360,4 +562,123 @@ header h1 {
   justify-content: space-between;
   width: 100%;
   margin-left: 10px;
+}
+
+/* Melhorias para dispositivos móveis */
+@media (max-width: 768px) {
+  /* Melhorar área de toque em botões */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Melhorar área de toque em elementos interativos */
+  .task-list li {
+    min-height: 44px;
+    align-items: center;
+  }
+  
+  /* Melhorar legibilidade em telas pequenas */
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  /* Evitar zoom no foco de inputs em iOS */
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
+/* Melhorias específicas para smartphones */
+@media (max-width: 480px) {
+  /* Melhorar espaçamento vertical */
+  .timer-setup {
+    margin: 15px 0;
+  }
+  
+  /* Melhorar a aparência do seletor de tempo */
+  .timer-setup select {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+  }
+  
+  /* Melhorar layout do cabeçalho da lista de tarefas */
+  .task-list-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+  
+  .task-list-header h2 {
+    text-align: center;
+  }
+  
+  .delete-mode-btn {
+    align-self: center;
+  }
+}
+
+/* Melhorias para dispositivos com tela sensível ao toque */
+@media (hover: none) and (pointer: coarse) {
+  /* Remover efeitos hover em dispositivos touch */
+  .task-list li:hover {
+    border-color: var(--border-color);
+  }
+  
+  /* Melhorar feedback visual ao tocar */
+  .task-list li:active {
+    background-color: rgba(54, 114, 248, 0.1);
+  }
+  
+  button:active {
+    transform: scale(0.95);
+  }
+}
+
+/* Orientação paisagem em smartphones */
+@media (max-width: 768px) and (orientation: landscape) {
+  .main-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  
+  .circle-container {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .circle-container svg {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .bg-circle, .progress-circle {
+    cx: 90;
+    cy: 90;
+    r: 75;
+    stroke-width: 15;
+  }
+  
+  #time-display {
+    font-size: 32px;
+  }
+}
+
+/* Melhorias de acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Melhor contraste para temas escuros em dispositivos móveis */
+@media (max-width: 768px) {
+  [data-theme='dark'] {
+    --text-color: #f0f0f0;
+    --border-color: #3a4b6e;
+  }
 }
