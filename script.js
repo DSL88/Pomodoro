@@ -23,25 +23,44 @@ document.addEventListener('DOMContentLoaded', () => {
   const deleteControls = document.getElementById('delete-controls');
   const deleteSelectedBtn = document.getElementById('delete-selected-btn');
   const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+  const testSoundBtn = document.getElementById('test-sound');
 
   // Web Audio API para o som
   let audioCtx;
   function beep(frequency = 440, duration = 200, volume = 100) {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      // Verificar se o contexto está suspenso (comum em navegadores modernos)
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      gainNode.gain.value = volume / 100;
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + duration / 1000);
+    } catch (error) {
+      console.warn('Erro ao reproduzir som:', error);
+      // Fallback: tentar usar um som HTML5
+      try {
+        const audio = new Audio();
+        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjuV2+/BdSYIKITJ7+OVSQ0PV6zw7qFMEgdMreXlrV4eLhGP3+e4bB4Aj+jr4lYeAI/o6+JWHgCM2uvnZCUCFmiw5e2nXAUGTq3m4KxYFQhQpuPntGQgBjeP2em6biwDyE';
+        audio.play();
+      } catch (fallbackError) {
+        console.warn('Fallback de som também falhou:', fallbackError);
+      }
     }
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    gainNode.gain.value = volume / 100;
-    oscillator.frequency.value = frequency;
-    oscillator.type = 'sine';
-
-    oscillator.start(audioCtx.currentTime);
-    oscillator.stop(audioCtx.currentTime + duration / 1000);
   }
 
   // SVG Circle Metrics
@@ -245,23 +264,43 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTasks();
     }
     
-    beep(523, 500, 80); // Toca um som de "Dó" (C5)
-
-    alert('Pomodoro concluído! Hora de uma pausa.');
+    // Tocar som antes do alerta
+    beep(523, 1000, 80); // Toca um som de "Dó" (C5) por 1 segundo
+    
+    // Aguardar um pouco antes de mostrar o alerta para permitir que o som toque
+    setTimeout(() => {
+      alert('Pomodoro concluído! Hora de uma pausa.');
+    }, 100);
+    
     resetTimer();
+  }
+
+  // Função auxiliar para inicializar áudio
+  function initializeAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
   }
 
   // Event Listeners
   startBtn.addEventListener('click', () => {
     // Inicializa o AudioContext com um gesto do usuário
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    initializeAudio();
     startTimer();
   });
 
-  pauseBtn.addEventListener('click', pauseTimer);
-  resetBtn.addEventListener('click', resetTimer);
+  pauseBtn.addEventListener('click', () => {
+    initializeAudio();
+    pauseTimer();
+  });
+  
+  resetBtn.addEventListener('click', () => {
+    initializeAudio();
+    resetTimer();
+  });
 
   // Event Listener para adição de tarefas
   taskForm.addEventListener('submit', e => {
@@ -276,6 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
   deleteModeBtn.addEventListener('click', toggleDeleteMode);
   deleteSelectedBtn.addEventListener('click', deleteSelectedTasks);
   cancelDeleteBtn.addEventListener('click', cancelDeleteMode);
+
+  // Event Listener para teste de som
+  testSoundBtn.addEventListener('click', () => {
+    initializeAudio();
+    beep(523, 1000, 80);
+    console.log('Teste de som executado!');
+  });
 
   // Event Listener para mudança de tempo
   timeSelect.addEventListener('change', () => {
