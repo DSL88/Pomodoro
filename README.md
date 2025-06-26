@@ -4,13 +4,16 @@ Um aplicativo Pomodoro moderno e responsivo desenvolvido com HTML, CSS e JavaScr
 
 ## ✨ Funcionalidades
 
-- ⏱️ **Timer Pomodoro Personalizável**: Configure durações de 1 a 60 minutos
+- ⏱️ **Timer Pomodoro Personalizável**: Configure durações de 5 a 60 minutos
 - 📝 **Gestão de Tarefas**: Adicione, selecione e elimine tarefas facilmente
-- 🌙 **Modo Escuro/Claro**: Interface adaptável com troca de tema
-- 🔊 **Notificações Sonoras**: Som de alerta quando o timer termina
+- 🗑️ **Eliminação de Tarefas**: Modo de eliminação com checkboxes para remover múltiplas tarefas
+- 🌙 **Modo Escuro/Claro**: Interface adaptável com troca de tema e cores otimizadas
+- 🔊 **Notificações Sonoras**: Som de alerta quando o timer termina com Web Audio API
+- 🎵 **Teste de Som**: Botão para testar o sistema de áudio
 - 📱 **Totalmente Responsivo**: Otimizado para todos os dispositivos
 - 💾 **Armazenamento Local**: Suas tarefas e configurações são salvas automaticamente
-- 🎯 **Interface Moderna**: Design limpo e intuitivo
+- 🎯 **Interface Moderna**: Design limpo e intuitivo com animações suaves
+- ⚡ **Compatibilidade**: Funciona em navegadores modernos com fallbacks
 
 ## 🚀 Como Usar
 
@@ -28,6 +31,21 @@ Um aplicativo Pomodoro moderno e responsivo desenvolvido com HTML, CSS e JavaScr
    - Selecione a tarefa clicando nela
    - Configure o tempo desejado
    - Clique em "Iniciar" para começar o timer
+
+### 🗑️ **Eliminar Tarefas**
+1. **Ativar modo de eliminação**:
+   - Clique no botão 🗑️ próximo ao título "Minhas Tarefas"
+   - Checkboxes aparecerão ao lado de cada tarefa
+
+2. **Selecionar e eliminar**:
+   - Marque as tarefas que deseja eliminar
+   - Clique em "Eliminar Selecionadas"
+   - Confirme a eliminação na janela de confirmação
+   - Ou clique em "Cancelar" para sair do modo de eliminação
+
+### 🔊 **Testar Som**
+- Use o botão "🔊 Testar Som" para verificar se o áudio está funcionando
+- Útil para garantir que ouvirá a notificação no final do timer
 
 ## 📱 Design Responsivo
 
@@ -66,16 +84,19 @@ Um aplicativo Pomodoro moderno e responsivo desenvolvido com HTML, CSS e JavaScr
 ## 📋 Funcionalidades Detalhadas
 
 ### Timer
-- Configuração de 1 a 60 minutos
+- Configuração de 5 a 60 minutos (incrementos de 5)
 - Controles: Iniciar, Pausar, Reset
-- Progresso visual circular
-- Som de notificação ao terminar
+- Progresso visual circular com cores otimizadas para cada tema
+- Som de notificação ao terminar com Web Audio API
+- Botão de teste de som para verificar funcionamento
 
 ### Tarefas
 - Adicionar novas tarefas
 - Selecionar tarefa ativa
-- Modo de eliminação com seleção múltipla
-- Persistência automática
+- Modo de eliminação com seleção múltipla via checkboxes
+- Confirmação antes de eliminar tarefas
+- Rastreamento de tempo gasto por tarefa
+- Persistência automática no navegador
 
 ### Acessibilidade
 - Suporte a leitores de tela
