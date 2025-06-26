@@ -27,8 +27,15 @@
         </section>
 
         <section class="task-list">
-          <h2>Minhas Tarefas</h2>
+          <div class="task-list-header">
+            <h2>Minhas Tarefas</h2>
+            <button id="delete-mode-btn" class="delete-mode-btn" title="Eliminar tarefas">🗑️</button>
+          </div>
           <ul id="tasks"></ul>
+          <div id="delete-controls" class="delete-controls" style="display: none;">
+            <button id="delete-selected-btn" class="delete-selected-btn">Eliminar Selecionadas</button>
+            <button id="cancel-delete-btn" class="cancel-delete-btn">Cancelar</button>
+          </div>
         </section>
       </div>
 

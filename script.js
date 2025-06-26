@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let timerInterval = null;
   let remainingTime = 25 * 60;
   let initialTime = 25 * 60;
+  let deleteMode = false;
+  let tasksToDelete = new Set();
 
   // Elementos DOM
   const taskForm = document.getElementById('task-form');
@@ -17,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const resetBtn = document.getElementById('reset');
   const progressCircle = document.getElementById('progress');
   const themeToggle = document.getElementById('theme-toggle');
+  const deleteModeBtn = document.getElementById('delete-mode-btn');
+  const deleteControls = document.getElementById('delete-controls');
+  const deleteSelectedBtn = document.getElementById('delete-selected-btn');
+  const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
 
   // Web Audio API para o som
   let audioCtx;
@@ -84,13 +90,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     tasks.forEach(task => {
       const li = document.createElement('li');
-      li.innerHTML = `
-        <span>${task.name}</span>
-        <span>${formatTime(task.timeSpent)}</span>
-      `;
+      
+      if (deleteMode) {
+        li.classList.add('delete-mode');
+        li.innerHTML = `
+          <input type="checkbox" class="task-checkbox" data-id="${task.id}" ${tasksToDelete.has(task.id) ? 'checked' : ''}>
+          <div class="task-content">
+            <span>${task.name}</span>
+            <span>${formatTime(task.timeSpent)}</span>
+          </div>
+        `;
+        
+        const checkbox = li.querySelector('.task-checkbox');
+        checkbox.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            tasksToDelete.add(task.id);
+          } else {
+            tasksToDelete.delete(task.id);
+          }
+        });
+      } else {
+        li.innerHTML = `
+          <span>${task.name}</span>
+          <span>${formatTime(task.timeSpent)}</span>
+        `;
+        li.addEventListener('click', () => selectTask(task.id));
+      }
+      
       li.dataset.id = task.id;
-      li.classList.toggle('selected', task.id === selectedTaskId);
-      li.addEventListener('click', () => selectTask(task.id));
+      if (!deleteMode) {
+        li.classList.toggle('selected', task.id === selectedTaskId);
+      }
       tasksList.appendChild(li);
     });
   }
@@ -107,13 +137,47 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTasks();
   }
 
-  taskForm.addEventListener('submit', e => {
-    e.preventDefault();
-    if (taskNameInput.value.trim()) {
-      addTask(taskNameInput.value.trim());
-      taskNameInput.value = '';
+  // Funções de eliminação de tarefas
+  function toggleDeleteMode() {
+    deleteMode = !deleteMode;
+    tasksToDelete.clear();
+    
+    if (deleteMode) {
+      deleteModeBtn.classList.add('active');
+      deleteControls.style.display = 'flex';
+    } else {
+      deleteModeBtn.classList.remove('active');
+      deleteControls.style.display = 'none';
     }
-  });
+    
+    renderTasks();
+  }
+
+  function deleteSelectedTasks() {
+    if (tasksToDelete.size === 0) {
+      alert('Por favor, selecione pelo menos uma tarefa para eliminar.');
+      return;
+    }
+    
+    const confirmDelete = confirm(`Tem certeza que deseja eliminar ${tasksToDelete.size} tarefa(s)?`);
+    if (confirmDelete) {
+      tasks = tasks.filter(task => !tasksToDelete.has(task.id));
+      
+      // Se a tarefa selecionada foi eliminada, limpar a seleção
+      if (tasksToDelete.has(selectedTaskId)) {
+        selectedTaskId = null;
+      }
+      
+      saveTasks();
+      tasksToDelete.clear();
+      toggleDeleteMode(); // Sair do modo de eliminação
+    }
+  }
+
+  function cancelDeleteMode() {
+    tasksToDelete.clear();
+    toggleDeleteMode();
+  }
 
   // Funções de timer
   function formatTime(seconds) {
@@ -198,11 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   pauseBtn.addEventListener('click', pauseTimer);
   resetBtn.addEventListener('click', resetTimer);
-  timeSelect.addEventListener('change', () => {
-      initialTime = timeSelect.value * 60;
-      remainingTime = initialTime;
-      updateDisplay();
-  });
+
+  // Event Listeners para eliminação de tarefas
+  deleteModeBtn.addEventListener('click', toggleDeleteMode);
+  deleteSelectedBtn.addEventListener('click', deleteSelectedTasks);
+  cancelDeleteBtn.addEventListener('click', cancelDeleteMode);
 
   // Inicialização
   renderTasks();
