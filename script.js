@@ -263,10 +263,26 @@ document.addEventListener('DOMContentLoaded', () => {
   pauseBtn.addEventListener('click', pauseTimer);
   resetBtn.addEventListener('click', resetTimer);
 
+  // Event Listener para adição de tarefas
+  taskForm.addEventListener('submit', e => {
+    e.preventDefault();
+    if (taskNameInput.value.trim()) {
+      addTask(taskNameInput.value.trim());
+      taskNameInput.value = '';
+    }
+  });
+
   // Event Listeners para eliminação de tarefas
   deleteModeBtn.addEventListener('click', toggleDeleteMode);
   deleteSelectedBtn.addEventListener('click', deleteSelectedTasks);
   cancelDeleteBtn.addEventListener('click', cancelDeleteMode);
+
+  // Event Listener para mudança de tempo
+  timeSelect.addEventListener('change', () => {
+      initialTime = timeSelect.value * 60;
+      remainingTime = initialTime;
+      updateDisplay();
+  });
 
   // Inicialização
   renderTasks();
