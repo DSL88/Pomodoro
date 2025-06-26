@@ -256,6 +256,15 @@ header h1 {
   cursor: not-allowed;
 }
 
+.test-sound-btn {
+  background-color: #28a745 !important;
+  color: white !important;
+}
+
+.test-sound-btn:hover {
+  background-color: #218838 !important;
+}
+
 /* Estilos para o botão de lixo e controles de eliminação */
 .task-list-header {
   display: flex;

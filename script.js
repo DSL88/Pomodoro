@@ -28,28 +28,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // Web Audio API para o som
   let audioCtx;
   function beep(frequency = 440, duration = 200, volume = 100) {
+    console.log(`Tentando tocar beep: freq=${frequency}Hz, dur=${duration}ms, vol=${volume}%`);
     try {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('AudioContext criado');
       }
+      
+      console.log('Estado do AudioContext:', audioCtx.state);
       
       // Verificar se o contexto está suspenso (comum em navegadores modernos)
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        console.log('Resumindo AudioContext...');
+        audioCtx.resume().then(() => {
+          console.log('AudioContext resumido');
+          playBeep();
+        });
+      } else {
+        playBeep();
       }
       
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
+      function playBeep() {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
 
-      gainNode.gain.value = volume / 100;
-      oscillator.frequency.value = frequency;
-      oscillator.type = 'sine';
+        gainNode.gain.value = volume / 100;
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
 
-      oscillator.start(audioCtx.currentTime);
-      oscillator.stop(audioCtx.currentTime + duration / 1000);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + duration / 1000);
+        console.log('Beep tocando...');
+      }
+      
     } catch (error) {
       console.warn('Erro ao reproduzir som:', error);
       // Fallback: tentar usar um som HTML5
@@ -57,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const audio = new Audio();
         audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjuV2+/BdSYIKITJ7+OVSQ0PV6zw7qFMEgdMreXlrV4eLhGP3+e4bB4Aj+jr4lYeAI/o6+JWHgCM2uvnZCUCFmiw5e2nXAUGTq3m4KxYFQhQpuPntGQgBjeP2em6biwDyE';
         audio.play();
+        console.log('Fallback de som HTML5 usado');
       } catch (fallbackError) {
         console.warn('Fallback de som também falhou:', fallbackError);
       }
@@ -264,8 +279,12 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTasks();
     }
     
+    // Garantir que o áudio está inicializado antes de tocar
+    initializeAudio();
+    
     // Tocar som antes do alerta
     beep(523, 1000, 80); // Toca um som de "Dó" (C5) por 1 segundo
+    console.log('Tentando tocar som de finalização...');
     
     // Aguardar um pouco antes de mostrar o alerta para permitir que o som toque
     setTimeout(() => {
