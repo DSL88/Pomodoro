@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let initialTime = 25 * 60;
   let deleteMode = false;
   let tasksToDelete = new Set();
+  let isDocumentVisible = true;
+  let backgroundStartTime = null;
 
   // Elementos DOM
   const taskForm = document.getElementById('task-form');
@@ -27,6 +29,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Web Audio API para o som
   let audioCtx;
+  
+  // Função para tocar som de campainha
+  function playBellSound() {
+    console.log('Tocando som de campainha...');
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+          generateBellSound();
+        });
+      } else {
+        generateBellSound();
+      }
+      
+      function generateBellSound() {
+        // Tocar uma sequência de 3 badaladas
+        const frequencies = [800, 600, 400]; // Frequencies for bell-like sound
+        
+        frequencies.forEach((freq, index) => {
+          setTimeout(() => {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            // Bell-like envelope (attack-decay)
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+            
+            oscillator.frequency.value = freq;
+            oscillator.type = 'sine';
+            
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.8);
+            
+            console.log(`Badalada ${index + 1} tocando (${freq}Hz)`);
+          }, index * 400); // 400ms between each bell
+        });
+      }
+      
+    } catch (error) {
+      console.warn('Erro ao reproduzir som de campainha:', error);
+      // Fallback para beep simples
+      beep(800, 200, 80);
+      setTimeout(() => beep(600, 200, 80), 400);
+      setTimeout(() => beep(400, 200, 80), 800);
+    }
+  }
+  
   function beep(frequency = 440, duration = 200, volume = 100) {
     console.log(`Tentando tocar beep: freq=${frequency}Hz, dur=${duration}ms, vol=${volume}%`);
     try {
@@ -93,14 +149,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     progressCircle.style.strokeDasharray = `${CIRCUMFERENCE}`;
-    updateProgress();
+    updateDisplay(); // Usar a função existente
   }
   
   // Inicializar métricas
   updateCircleMetrics();
   
-  // Atualizar métricas quando a tela for redimensionada
+  // Listener para redimensionamento da janela
   window.addEventListener('resize', updateCircleMetrics);
+
+  // Page Visibility API para timer em background
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // Página ficou oculta (background)
+      isDocumentVisible = false;
+      if (timerInterval) {
+        backgroundStartTime = Date.now();
+      }
+    } else {
+      // Página ficou visível novamente
+      isDocumentVisible = true;
+      if (backgroundStartTime && timerInterval) {
+        // Calcular tempo passado em background
+        const timeInBackground = Math.floor((Date.now() - backgroundStartTime) / 1000);
+        remainingTime = Math.max(0, remainingTime - timeInBackground);
+        updateDisplay();
+        
+        // Se o tempo acabou durante o background
+        if (remainingTime <= 0) {
+          clearInterval(timerInterval);
+          finishTimer();
+        }
+        
+        backgroundStartTime = null;
+      }
+    }
+  });
 
   // Funções de Tema
   function setTheme(theme) {
@@ -266,14 +350,24 @@ document.addEventListener('DOMContentLoaded', () => {
     resetBtn.disabled = false;
     timeSelect.disabled = true;
 
+    // Timer mais preciso
+    let startTime = Date.now();
+    let initialRemainingTime = remainingTime;
+    
     timerInterval = setInterval(() => {
-      remainingTime--;
-      updateDisplay();
-      if (remainingTime <= 0) {
-        clearInterval(timerInterval);
-        finishTimer();
+      if (isDocumentVisible) {
+        // Calcular tempo baseado no tempo real decorrido
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        remainingTime = Math.max(0, initialRemainingTime - elapsedTime);
+        updateDisplay();
+        
+        if (remainingTime <= 0) {
+          clearInterval(timerInterval);
+          finishTimer();
+        }
       }
-    }, 1000);
+      // Se não está visível, o Page Visibility API cuidará da atualização
+    }, 100); // Atualizar a cada 100ms para suavidade
   }
 
   function pauseTimer() {
@@ -304,14 +398,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Garantir que o áudio está inicializado antes de tocar
     initializeAudio();
     
-    // Tocar som antes do alerta
-    beep(523, 1000, 80); // Toca um som de "Dó" (C5) por 1 segundo
-    console.log('Tentando tocar som de finalização...');
+    // Tocar som de campainha
+    playBellSound();
+    console.log('Timer finalizado - tocando campainha...');
     
-    // Aguardar um pouco antes de mostrar o alerta para permitir que o som toque
+    // Aguardar antes do alerta para permitir que o som toque
     setTimeout(() => {
-      alert('Pomodoro concluído! Hora de uma pausa.');
-    }, 100);
+      alert('🍅 Pomodoro concluído! Hora de uma pausa.');
+    }, 200);
     
     resetTimer();
   }
@@ -397,8 +491,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Event Listener para teste de som
   testSoundBtn.addEventListener('click', () => {
     initializeAudio();
-    beep(523, 1000, 80);
-    console.log('Teste de som executado!');
+    playBellSound();
+    console.log('Teste de campainha executado!');
   });
 
   // Event Listener para mudança de tempo
