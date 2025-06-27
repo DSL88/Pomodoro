@@ -27,111 +27,250 @@ document.addEventListener('DOMContentLoaded', () => {
   const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
   const testSoundBtn = document.getElementById('test-sound');
 
-  // Web Audio API para o som
+  // Sistema de som múltiplo com fallbacks
   let audioCtx;
+  let audioEnabled = false;
   
-  // Função para tocar som de campainha
-  function playBellSound() {
-    console.log('Tocando som de campainha...');
-    try {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
+  // Função principal para tocar som de alerta
+  function playAlertSound() {
+    console.log('🔔 Iniciando reprodução de som de alerta...');
+    
+    // Garantir que o AudioContext está funcionando
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    
+    // Tentar múltiplas estratégias sequencialmente para maior sucesso
+    Promise.allSettled([
+      playWebAudioBell(),
+      playHTML5Bell(),
+      playNotificationSound(),
+      triggerVibration(),
+      playSimpleTone() // Novo método mais simples
+    ]).then(results => {
+      console.log('Resultados dos métodos de som:', results);
       
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume().then(() => {
-          generateBellSound();
-        });
+      // Se nenhum método funcionou, tentar método de emergência
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      if (successCount === 0) {
+        console.warn('⚠️ Todos os métodos de som falharam, tentando método de emergência...');
+        emergencyBeep();
       } else {
-        generateBellSound();
+        console.log(`✅ ${successCount} método(s) de som funcionaram`);
       }
-      
-      function generateBellSound() {
-        // Tocar uma sequência de 3 badaladas
-        const frequencies = [800, 600, 400]; // Frequencies for bell-like sound
+    });
+  }
+  
+  // Novo método de som mais simples para emergência
+  function playSimpleTone() {
+    return new Promise((resolve, reject) => {
+      try {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
         
-        frequencies.forEach((freq, index) => {
-          setTimeout(() => {
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            // Bell-like envelope (attack-decay)
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
-            
-            oscillator.frequency.value = freq;
-            oscillator.type = 'sine';
-            
-            oscillator.start(audioCtx.currentTime);
-            oscillator.stop(audioCtx.currentTime + 0.8);
-            
-            console.log(`Badalada ${index + 1} tocando (${freq}Hz)`);
-          }, index * 400); // 400ms between each bell
-        });
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.value = 0.3;
+        
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.5);
+        
+        console.log('🎵 Tom simples tocado');
+        resolve('Simple tone OK');
+      } catch (error) {
+        console.warn('❌ Tom simples falhou:', error);
+        reject(error);
       }
+    });
+  }
+  
+  // Método de emergência usando setInterval para criar som
+  function emergencyBeep() {
+    console.log('🚨 Usando método de emergência para som...');
+    try {
+      let frequency = 800;
+      let duration = 200;
+      let audioContext = new (window.AudioContext || window.webkitAudioContext)();
       
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          let oscillator = audioContext.createOscillator();
+          let gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = frequency - (i * 100);
+          oscillator.type = 'square'; // Som mais áspero, mais difícil de ignorar
+          
+          gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration / 1000);
+          
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + duration / 1000);
+          
+          console.log(`🚨 Beep emergência ${i + 1}`);
+        }, i * 300);
+      }
     } catch (error) {
-      console.warn('Erro ao reproduzir som de campainha:', error);
-      // Fallback para beep simples
-      beep(800, 200, 80);
-      setTimeout(() => beep(600, 200, 80), 400);
-      setTimeout(() => beep(400, 200, 80), 800);
+      console.warn('❌ Método de emergência também falhou:', error);
     }
   }
   
-  function beep(frequency = 440, duration = 200, volume = 100) {
-    console.log(`Tentando tocar beep: freq=${frequency}Hz, dur=${duration}ms, vol=${volume}%`);
+  // Método 1: Web Audio API (campainha)
+  async function playWebAudioBell() {
     try {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        console.log('AudioContext criado');
       }
       
-      console.log('Estado do AudioContext:', audioCtx.state);
-      
-      // Verificar se o contexto está suspenso (comum em navegadores modernos)
       if (audioCtx.state === 'suspended') {
-        console.log('Resumindo AudioContext...');
-        audioCtx.resume().then(() => {
-          console.log('AudioContext resumido');
-          playBeep();
-        });
-      } else {
-        playBeep();
+        await audioCtx.resume();
       }
       
-      function playBeep() {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-
-        gainNode.gain.value = volume / 100;
-        oscillator.frequency.value = frequency;
-        oscillator.type = 'sine';
-
-        oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + duration / 1000);
-        console.log('Beep tocando...');
+      console.log('Web Audio - Estado:', audioCtx.state);
+      
+      // 3 badaladas de campainha
+      const frequencies = [800, 600, 400];
+      for (let i = 0; i < frequencies.length; i++) {
+        setTimeout(() => {
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          
+          // Envelope de campainha
+          gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+          
+          oscillator.frequency.value = frequencies[i];
+          oscillator.type = 'sine';
+          
+          oscillator.start(audioCtx.currentTime);
+          oscillator.stop(audioCtx.currentTime + 0.5);
+          
+          console.log(`🔔 Badalada ${i + 1}: ${frequencies[i]}Hz`);
+        }, i * 300);
       }
       
+      return Promise.resolve('Web Audio OK');
     } catch (error) {
-      console.warn('Erro ao reproduzir som:', error);
-      // Fallback: tentar usar um som HTML5
+      console.warn('❌ Web Audio falhou:', error);
+      return Promise.reject(error);
+    }
+  }
+  
+  // Método 2: HTML5 Audio (múltiplos beeps)
+  function playHTML5Bell() {
+    try {
+      console.log('🎵 Tentando HTML5 Audio...');
+      
+      // Criar som de beep mais simples e confiável
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const beepCount = 3;
+      
+      for (let i = 0; i < beepCount; i++) {
+        setTimeout(() => {
+          // Criar beep usando Web Audio API mais simples
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          // Configurações do beep
+          oscillator.frequency.value = 800 - (i * 100); // 800Hz, 700Hz, 600Hz
+          oscillator.type = 'sine';
+          
+          // Envelope simples
+          const now = audioContext.currentTime;
+          gainNode.gain.setValueAtTime(0, now);
+          gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          
+          oscillator.start(now);
+          oscillator.stop(now + 0.3);
+          
+          console.log(`🎵 HTML5 Beep ${i + 1} tocando (${oscillator.frequency.value}Hz)`);
+        }, i * 400);
+      }
+      
+      return Promise.resolve('HTML5 Audio OK');
+    } catch (error) {
+      console.warn('❌ HTML5 Audio falhou:', error);
+      
+      // Fallback: tentar com elemento Audio tradicional
       try {
         const audio = new Audio();
-        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjuV2+/BdSYIKITJ7+OVSQ0PV6zw7qFMEgdMreXlrV4eLhGP3+e4bB4Aj+jr4lYeAI/o6+JWHgCM2uvnZCUCFmiw5e2nXAUGTq3m4KxYFQhQpuPntGQgBjeP2em6biwDyE';
+        // Som de beep mais básico
+        audio.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjuV2+/BdSYIKITJ7+OVSQ0PV6zw7qFMEgdMreXlrV4eLhGP3+e4bB4Aj+jr4lYeAI/o6+JWHgCP6OviVh4AjNrr52QlAhZosOXtp1wFBk6t5uCsWBUIUKbj57RkIAY3j9npum4sAy+Dze/eizEJFGq+6eWdVgwKUarm7K9gFgY7k9n1w3YnBSqByO/dkj8OElyx7OigUhUHSKHh8LdjHgg2jdj1xHkpBSd9yO7biDkME2i57OihUhEISqTj76xeFgU9mNn3vnMpByl+xu7diToMEluw6OmlWBQITKXn7K1eHAU5ltv1v3MnAyqAyO/eizIJE2m86eWdWAsGUarm7K9gFgU7k9j1w3YnBSqByO/dkT8OElux7OihUhUHSKHh8LdjHQg3jdj1xHkpBSd+yO7biDoLE2i56+mjWBQITKXn7K1eHAU5ltv1v3MnAyqAyO/eizEJE2m86eWdWAsGUarm7K9gFgU7k9j1w3YnBSqByO/dkT8OElux7OihUhUHSKHh8LdjHQg3jdj1xHkpBSd+yO7biDoLE2i56+mjWBQITKXn7K1eHAU5ltv1v3MnAyqAyO/eizEJE2m86eWdWAsGUarm7K9gFgU7k9j1w3YnBSqByO/dkT8OElux7OihUhUHSKHh8LdjHQg3jdj1xHkpBSd+yO7biDoLE2i56+mjWBQITKXn7K1eHAU=";
+        audio.volume = 0.5;
         audio.play();
-        console.log('Fallback de som HTML5 usado');
+        return Promise.resolve('Audio fallback OK');
       } catch (fallbackError) {
-        console.warn('Fallback de som também falhou:', fallbackError);
+        return Promise.reject(fallbackError);
       }
     }
+  }
+  
+  // Método 3: Notification API com som
+  function playNotificationSound() {
+    try {
+      if ('Notification' in window) {
+        if (Notification.permission === 'granted') {
+          console.log('🔔 Criando notificação com som...');
+          new Notification('🍅 Pomodoro Concluído!', {
+            body: 'Hora de fazer uma pausa!',
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍅</text></svg>',
+            requireInteraction: true,
+            silent: false // Força som da notificação
+          });
+          return Promise.resolve('Notification OK');
+        } else if (Notification.permission === 'default') {
+          console.log('📢 Solicitando permissão para notificações...');
+          Notification.requestPermission();
+        }
+      }
+      return Promise.reject('Notifications não suportadas');
+    } catch (error) {
+      console.warn('❌ Notification falhou:', error);
+      return Promise.reject(error);
+    }
+  }
+  
+  // Método 4: Vibração (mobile)
+  function triggerVibration() {
+    try {
+      if ('vibrate' in navigator) {
+        console.log('📳 Ativando vibração...');
+        // Padrão: longo-curto-longo-curto-longo
+        navigator.vibrate([500, 200, 300, 200, 500]);
+        return Promise.resolve('Vibration OK');
+      }
+      return Promise.reject('Vibration não suportada');
+    } catch (error) {
+      console.warn('❌ Vibração falhou:', error);
+      return Promise.reject(error);
+    }
+  }
+  
+  // Função de teste para o botão
+  function testBellSound() {
+    console.log('🧪 TESTE DE SOM INICIADO');
+    playAlertSound();
+  }
+  
+  // Função beep simplificada (mantida para compatibilidade)
+  function beep(frequency = 440, duration = 200, volume = 100) {
+    console.log(`🎵 Beep: ${frequency}Hz por ${duration}ms`);
+    return playWebAudioBell();
   }
 
   // SVG Circle Metrics - Responsivo
@@ -388,6 +527,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function finishTimer() {
+    console.log('⏰ TIMER FINALIZADO! Iniciando sequência de alerta...');
+    
     const task = tasks.find(t => t.id === selectedTaskId);
     if (task) {
       task.timeSpent += initialTime;
@@ -395,28 +536,80 @@ document.addEventListener('DOMContentLoaded', () => {
       renderTasks();
     }
     
-    // Garantir que o áudio está inicializado antes de tocar
+    // FORÇAR inicialização de áudio
     initializeAudio();
     
-    // Tocar som de campainha
-    playBellSound();
-    console.log('Timer finalizado - tocando campainha...');
-    
-    // Aguardar antes do alerta para permitir que o som toque
+    // Aguardar um pouco para garantir que o áudio está pronto
     setTimeout(() => {
-      alert('🍅 Pomodoro concluído! Hora de uma pausa.');
-    }, 200);
+      console.log('🔔 Disparando todos os métodos de alerta...');
+      playAlertSound();
+    }, 100);
+    
+    // Mostrar notificação visual mais discreta ao invés de alert bloqueante
+    setTimeout(() => {
+      showPomodoroCompleteNotification();
+    }, 1000);
     
     resetTimer();
   }
 
-  // Função auxiliar para inicializar áudio
+  // Nova função para notificação visual não bloqueante
+  function showPomodoroCompleteNotification() {
+    // Criar elemento de notificação
+    const notification = document.createElement('div');
+    notification.className = 'pomodoro-notification';
+    notification.innerHTML = `
+      <div class="notification-content">
+        <div class="notification-icon">🍅</div>
+        <div class="notification-text">
+          <h3>Pomodoro Concluído!</h3>
+          <p>Hora de fazer uma pausa</p>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remover após 5 segundos
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 5000);
+  }
+
+  // Função auxiliar para inicializar áudio AGRESSIVAMENTE
   function initializeAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+    console.log('🎵 Inicializando sistema de áudio...');
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('✅ AudioContext criado');
+      }
+      
+      if (audioCtx.state === 'suspended') {
+        console.log('🔄 Resumindo AudioContext...');
+        audioCtx.resume().then(() => {
+          console.log('✅ AudioContext resumido');
+          audioEnabled = true;
+        }).catch(err => {
+          console.warn('❌ Erro ao resumir AudioContext:', err);
+        });
+      } else {
+        audioEnabled = true;
+        console.log('✅ AudioContext já ativo');
+      }
+      
+      // Solicitar permissão de notificação
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          console.log('Permissão de notificação:', permission);
+        });
+      }
+      
+    } catch (error) {
+      console.warn('❌ Erro na inicialização de áudio:', error);
     }
   }
 
@@ -490,9 +683,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Event Listener para teste de som
   testSoundBtn.addEventListener('click', () => {
+    console.log('🧪 BOTÃO DE TESTE PRESSIONADO');
     initializeAudio();
-    playBellSound();
-    console.log('Teste de campainha executado!');
+    
+    // Solicitar permissão de notificação se necessário
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Permissão de notificação:', permission);
+        testBellSound();
+      });
+    } else {
+      testBellSound();
+    }
   });
 
   // Event Listener para mudança de tempo
