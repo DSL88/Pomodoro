@@ -94,6 +94,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       
+      // Migrar tarefas antigas para incluir histórico de pomodoros
+      let needsMigration = false;
+      tasks.forEach(task => {
+        if (!task.pomodoroHistory) {
+          task.pomodoroHistory = [];
+          needsMigration = true;
+        }
+      });
+      
+      if (needsMigration) {
+        saveTasks();
+        console.log('🔧 Tarefas migradas para incluir histórico de pomodoros');
+      }
+      
     } catch (error) {
       console.error('❌ Erro ao inicializar sessão:', error);
       currentSession = 'pomodoro_default';
@@ -245,18 +259,31 @@ document.addEventListener('DOMContentLoaded', () => {
         
       } else {
         // Modo normal: seleção de tarefa
+        const hasHistory = task.timeSpent > 0 && task.pomodoroHistory && task.pomodoroHistory.length > 0;
+        
         li.innerHTML = `
-          <span>${task.name}</span>
+          <span>${task.name} ${hasHistory ? '📊' : ''}</span>
           <span>${formatTime(task.timeSpent)}</span>
         `;
+        
+        if (hasHistory) {
+          li.style.cursor = 'pointer';
+          li.title = 'Clique para ver o histórico de pomodoros';
+        }
         
         if (task.id === selectedTaskId) {
           li.classList.add('selected');
         }
         
         li.addEventListener('click', () => {
-          selectedTaskId = task.id;
-          renderTasks();
+          // Se a tarefa tem tempo registrado, mostrar histórico
+          if (hasHistory) {
+            showPomodoroHistory(task);
+          } else {
+            // Caso contrário, apenas selecionar a tarefa
+            selectedTaskId = task.id;
+            renderTasks();
+          }
         });
       }
       
@@ -425,8 +452,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const task = tasks.find(t => t.id === selectedTaskId);
     if (task) {
       task.timeSpent += initialTime;
+      
+      // Garantir que existe o array de histórico (para tarefas antigas)
+      if (!task.pomodoroHistory) {
+        task.pomodoroHistory = [];
+      }
+      
+      // Adicionar pomodoro ao histórico
+      const pomodoroSession = {
+        id: Date.now(),
+        duration: initialTime,
+        completedAt: new Date().toISOString(),
+        date: new Date().toLocaleDateString('pt-BR'),
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      };
+      
+      task.pomodoroHistory.push(pomodoroSession);
+      
       saveTasks();
       renderTasks();
+      
+      console.log(`🍅 Pomodoro registrado: ${formatTime(initialTime)} em ${task.name}`);
     }
     
     // Reproduzir som
@@ -449,7 +495,12 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const taskName = foundElements['task-name'].value.trim();
     if (taskName) {
-      const task = { id: Date.now(), name: taskName, timeSpent: 0 };
+      const task = { 
+        id: Date.now(), 
+        name: taskName, 
+        timeSpent: 0,
+        pomodoroHistory: [] // Histórico de pomodoros realizados
+      };
       tasks.push(task);
       saveTasks();
       renderTasks();
@@ -565,4 +616,203 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Iniciar aplicação
   initialize();
+  
+  // Mostrar histórico de pomodoros de uma tarefa
+  function showPomodoroHistory(task) {
+    // Criar modal para mostrar o histórico
+    const modal = document.createElement('div');
+    modal.className = 'pomodoro-history-modal';
+    modal.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      backdrop-filter: blur(5px);
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+      background: var(--card-bg-color);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+    `;
+    
+    // Cabeçalho do modal
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-color);
+    `;
+    
+    const title = document.createElement('h2');
+    title.textContent = `🍅 Histórico: ${task.name}`;
+    title.style.cssText = `
+      margin: 0;
+      color: var(--text-color);
+      font-size: 1.3em;
+    `;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '❌';
+    closeBtn.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 1.2em;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    `;
+    closeBtn.onmouseover = () => closeBtn.style.background = 'var(--border-color)';
+    closeBtn.onmouseout = () => closeBtn.style.background = 'none';
+    
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    
+    // Estatísticas resumidas
+    const stats = document.createElement('div');
+    stats.style.cssText = `
+      background: var(--bg-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      text-align: center;
+    `;
+    
+    const totalPomodoros = task.pomodoroHistory.length;
+    const totalTime = task.timeSpent;
+    const avgDuration = totalTime / totalPomodoros;
+    
+    stats.innerHTML = `
+      <div>
+        <div style="font-size: 2em; color: var(--primary-color);">🍅</div>
+        <div style="font-weight: 600; margin: 4px 0;">${totalPomodoros}</div>
+        <div style="font-size: 0.9em; opacity: 0.7;">Pomodoros</div>
+      </div>
+      <div>
+        <div style="font-size: 2em; color: var(--primary-color);">⏱️</div>
+        <div style="font-weight: 600; margin: 4px 0;">${formatTime(totalTime)}</div>
+        <div style="font-size: 0.9em; opacity: 0.7;">Tempo Total</div>
+      </div>
+      <div>
+        <div style="font-size: 2em; color: var(--primary-color);">📊</div>
+        <div style="font-weight: 600; margin: 4px 0;">${formatTime(Math.round(avgDuration))}</div>
+        <div style="font-size: 0.9em; opacity: 0.7;">Média</div>
+      </div>
+    `;
+    
+    // Lista de pomodoros (mais recentes primeiro)
+    const historyList = document.createElement('div');
+    historyList.style.cssText = `
+      max-height: 300px;
+      overflow-y: auto;
+    `;
+    
+    const sortedHistory = [...task.pomodoroHistory].reverse();
+    
+    sortedHistory.forEach((pomodoro, index) => {
+      const pomodoroItem = document.createElement('div');
+      pomodoroItem.style.cssText = `
+        background: var(--bg-color);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        border-left: 4px solid var(--primary-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.2s;
+      `;
+      pomodoroItem.onmouseover = () => pomodoroItem.style.transform = 'translateX(4px)';
+      pomodoroItem.onmouseout = () => pomodoroItem.style.transform = 'translateX(0)';
+      
+      const leftContent = document.createElement('div');
+      leftContent.innerHTML = `
+        <div style="font-weight: 600; color: var(--text-color); margin-bottom: 4px;">
+          📅 ${pomodoro.date}
+        </div>
+        <div style="font-size: 0.9em; opacity: 0.8;">
+          🕐 ${pomodoro.time}
+        </div>
+      `;
+      
+      const rightContent = document.createElement('div');
+      rightContent.style.textAlign = 'right';
+      rightContent.innerHTML = `
+        <div style="font-weight: 600; color: var(--primary-color); font-size: 1.1em;">
+          ${formatTime(pomodoro.duration)}
+        </div>
+        <div style="font-size: 0.8em; opacity: 0.6;">
+          #${totalPomodoros - index}
+        </div>
+      `;
+      
+      pomodoroItem.appendChild(leftContent);
+      pomodoroItem.appendChild(rightContent);
+      historyList.appendChild(pomodoroItem);
+    });
+    
+    // Botão para selecionar tarefa
+    const selectBtn = document.createElement('button');
+    selectBtn.textContent = '✅ Selecionar esta tarefa';
+    selectBtn.style.cssText = `
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    `;
+    selectBtn.onmouseover = () => selectBtn.style.background = 'var(--primary-hover-color)';
+    selectBtn.onmouseout = () => selectBtn.style.background = 'var(--primary-color)';
+    
+    // Event listeners
+    closeBtn.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+    
+    selectBtn.addEventListener('click', () => {
+      selectedTaskId = task.id;
+      renderTasks();
+      document.body.removeChild(modal);
+    });
+    
+    // Montar modal
+    modalContent.appendChild(header);
+    modalContent.appendChild(stats);
+    modalContent.appendChild(historyList);
+    modalContent.appendChild(selectBtn);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    console.log(`📊 Histórico mostrado para tarefa: ${task.name} (${totalPomodoros} pomodoros)`);
+  }
 });
