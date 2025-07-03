@@ -222,24 +222,151 @@ document.addEventListener('DOMContentLoaded', () => {
     
     tasks.forEach(task => {
       const li = document.createElement('li');
-      li.innerHTML = `
-        <span>${task.name}</span>
-        <span>${formatTime(task.timeSpent)}</span>
-      `;
       
-      if (task.id === selectedTaskId) {
-        li.classList.add('selected');
+      if (deleteMode) {
+        // Modo de exclusão: adicionar checkbox
+        li.innerHTML = `
+          <label class="task-checkbox">
+            <input type="checkbox" ${tasksToDelete.has(task.id) ? 'checked' : ''}>
+            <span>${task.name}</span>
+            <span>${formatTime(task.timeSpent)}</span>
+          </label>
+        `;
+        
+        const checkbox = li.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            tasksToDelete.add(task.id);
+          } else {
+            tasksToDelete.delete(task.id);
+          }
+          updateDeleteControls();
+        });
+        
+      } else {
+        // Modo normal: seleção de tarefa
+        li.innerHTML = `
+          <span>${task.name}</span>
+          <span>${formatTime(task.timeSpent)}</span>
+        `;
+        
+        if (task.id === selectedTaskId) {
+          li.classList.add('selected');
+        }
+        
+        li.addEventListener('click', () => {
+          selectedTaskId = task.id;
+          renderTasks();
+        });
       }
-      
-      li.addEventListener('click', () => {
-        selectedTaskId = task.id;
-        renderTasks();
-      });
       
       tasksList.appendChild(li);
     });
     
-    console.log(`📋 ${tasks.length} tarefas renderizadas`);
+    console.log(`📋 ${tasks.length} tarefas renderizadas ${deleteMode ? '(modo exclusão)' : ''}`);
+  }
+  
+  // Alternar modo de exclusão
+  function toggleDeleteMode() {
+    deleteMode = !deleteMode;
+    tasksToDelete.clear();
+    
+    const deleteModeBtn = foundElements['delete-mode-btn'];
+    const deleteControls = foundElements['delete-controls'];
+    
+    if (deleteMode) {
+      deleteModeBtn.textContent = '❌';
+      deleteModeBtn.title = 'Cancelar exclusão';
+      deleteControls.style.display = 'block';
+      console.log('🗑️ Modo de exclusão ativado');
+    } else {
+      deleteModeBtn.textContent = '🗑️';
+      deleteModeBtn.title = 'Eliminar tarefas';
+      deleteControls.style.display = 'none';
+      console.log('✅ Modo de exclusão desativado');
+    }
+    
+    renderTasks();
+    updateDeleteControls();
+  }
+  
+  // Atualizar controles de exclusão
+  function updateDeleteControls() {
+    const deleteSelectedBtn = foundElements['delete-selected-btn'];
+    if (deleteSelectedBtn) {
+      deleteSelectedBtn.disabled = tasksToDelete.size === 0;
+      deleteSelectedBtn.textContent = tasksToDelete.size > 0 
+        ? `Eliminar ${tasksToDelete.size} tarefa${tasksToDelete.size > 1 ? 's' : ''}` 
+        : 'Eliminar Selecionadas';
+    }
+  }
+  
+  // Excluir tarefas selecionadas
+  function deleteSelectedTasks() {
+    if (tasksToDelete.size === 0) return;
+    
+    const taskNames = tasks
+      .filter(task => tasksToDelete.has(task.id))
+      .map(task => task.name);
+    
+    const confirmMessage = `Tem certeza que deseja excluir ${tasksToDelete.size} tarefa${tasksToDelete.size > 1 ? 's' : ''}?\n\n${taskNames.join('\n')}`;
+    
+    if (confirm(confirmMessage)) {
+      // Remover tarefas selecionadas
+      tasks = tasks.filter(task => !tasksToDelete.has(task.id));
+      
+      // Se a tarefa selecionada foi excluída, limpar seleção
+      if (selectedTaskId && tasksToDelete.has(selectedTaskId)) {
+        selectedTaskId = null;
+      }
+      
+      // Salvar e atualizar interface
+      saveTasks();
+      toggleDeleteMode(); // Sair do modo de exclusão
+      
+      console.log(`🗑️ ${tasksToDelete.size} tarefa(s) excluída(s)`);
+      
+      // Mostrar notificação de sucesso
+      showNotification(`✅ ${tasksToDelete.size} tarefa${tasksToDelete.size > 1 ? 's' : ''} excluída${tasksToDelete.size > 1 ? 's' : ''} com sucesso!`, 'success');
+    }
+  }
+  
+  // Mostrar notificação temporária
+  function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      font-weight: 500;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animar entrada
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Remover após 3 segundos
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, 3000);
   }
   
   // Timer
@@ -375,6 +502,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     foundElements['theme-toggle'].textContent = newTheme === 'dark' ? '☀️' : '🌙';
+  });
+  
+  // Botões de exclusão
+  foundElements['delete-mode-btn'].addEventListener('click', toggleDeleteMode);
+  
+  foundElements['delete-selected-btn'].addEventListener('click', deleteSelectedTasks);
+  
+  foundElements['cancel-delete-btn'].addEventListener('click', () => {
+    toggleDeleteMode(); // Sair do modo de exclusão
   });
   
   // ========================================
