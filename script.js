@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'task-form', 'task-name', 'tasks', 'time-select', 'time-display',
     'start', 'pause', 'reset', 'progress', 'theme-toggle',
     'delete-mode-btn', 'delete-controls', 'delete-selected-btn',
-    'cancel-delete-btn', 'test-sound'
+    'cancel-delete-btn', 'test-sound', 'selected-task-name', 'task-blocks-container'
   ];
   
   const missingElements = [];
@@ -283,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Caso contrário, apenas selecionar a tarefa
             selectedTaskId = task.id;
             renderTasks();
+            renderTaskBlocks();
           }
         });
       }
@@ -471,6 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       saveTasks();
       renderTasks();
+      renderTaskBlocks();
       
       console.log(`🍅 Pomodoro registrado: ${formatTime(initialTime)} em ${task.name}`);
     }
@@ -581,6 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Renderizar interface
     renderTasks();
+    renderTaskBlocks();
     updateDisplay();
     
     // Adicionar indicador de sessão
@@ -802,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectBtn.addEventListener('click', () => {
       selectedTaskId = task.id;
       renderTasks();
+      renderTaskBlocks();
       document.body.removeChild(modal);
     });
     
@@ -814,5 +818,133 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(modal);
     
     console.log(`📊 Histórico mostrado para tarefa: ${task.name} (${totalPomodoros} pomodoros)`);
+  }
+  
+  // Renderizar blocos de pomodoros da tarefa selecionada
+  function renderTaskBlocks() {
+    const selectedTaskNameEl = foundElements['selected-task-name'];
+    const blocksContainer = foundElements['task-blocks-container'];
+    
+    if (!selectedTaskNameEl || !blocksContainer) return;
+    
+    // Se nenhuma tarefa selecionada
+    if (!selectedTaskId) {
+      selectedTaskNameEl.textContent = 'Selecione uma tarefa';
+      blocksContainer.innerHTML = '<p class="no-task-message">Nenhuma tarefa selecionada</p>';
+      return;
+    }
+    
+    // Encontrar a tarefa selecionada
+    const selectedTask = tasks.find(task => task.id === selectedTaskId);
+    if (!selectedTask) return;
+    
+    // Atualizar nome da tarefa
+    selectedTaskNameEl.textContent = `🍅 ${selectedTask.name}`;
+    
+    // Se a tarefa não tem pomodoros
+    if (!selectedTask.pomodoroHistory || selectedTask.pomodoroHistory.length === 0) {
+      blocksContainer.innerHTML = '<p class="no-task-message">Nenhum pomodoro realizado ainda</p>';
+      return;
+    }
+    
+    // Renderizar blocos
+    blocksContainer.innerHTML = '';
+    
+    selectedTask.pomodoroHistory.forEach((pomodoro, index) => {
+      const block = document.createElement('div');
+      block.className = 'pomodoro-block';
+      
+      // Adicionar classe baseada na duração
+      const durationMinutes = Math.round(pomodoro.duration / 60);
+      block.classList.add(`duration-${durationMinutes}`);
+      
+      // Formato da data: dd-MM
+      const date = new Date(pomodoro.completedAt);
+      const formattedDate = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+      
+      block.innerHTML = `
+        <span class="date">${formattedDate}</span>
+        <span class="time">${pomodoro.time}</span>
+        <span class="duration">${formatTime(pomodoro.duration)}</span>
+      `;
+      
+      // Tooltip com informações detalhadas
+      block.title = `Pomodoro #${index + 1}\nData: ${pomodoro.date}\nHora: ${pomodoro.time}\nDuração: ${formatTime(pomodoro.duration)}`;
+      
+      // Click para mostrar detalhes
+      block.addEventListener('click', () => {
+        showPomodoroDetails(pomodoro, index + 1, selectedTask.name);
+      });
+      
+      blocksContainer.appendChild(block);
+    });
+    
+    console.log(`📊 ${selectedTask.pomodoroHistory.length} blocos renderizados para: ${selectedTask.name}`);
+  }
+  
+  // Mostrar detalhes de um pomodoro específico
+  function showPomodoroDetails(pomodoro, pomodoroNumber, taskName) {
+    const notification = document.createElement('div');
+    notification.className = 'pomodoro-details-notification';
+    notification.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--card-bg-color);
+      border: 2px solid var(--primary-color);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 10000;
+      max-width: 300px;
+      text-align: center;
+    `;
+    
+    notification.innerHTML = `
+      <h3 style="margin: 0 0 16px 0; color: var(--primary-color);">
+        🍅 Pomodoro #${pomodoroNumber}
+      </h3>
+      <p style="margin: 8px 0; color: var(--text-color);">
+        <strong>Tarefa:</strong> ${taskName}
+      </p>
+      <p style="margin: 8px 0; color: var(--text-color);">
+        <strong>Data:</strong> ${pomodoro.date}
+      </p>
+      <p style="margin: 8px 0; color: var(--text-color);">
+        <strong>Hora:</strong> ${pomodoro.time}
+      </p>
+      <p style="margin: 8px 0; color: var(--text-color);">
+        <strong>Duração:</strong> ${formatTime(pomodoro.duration)}
+      </p>
+      <button style="
+        margin-top: 16px;
+        padding: 8px 16px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+      ">Fechar</button>
+    `;
+    
+    const closeBtn = notification.querySelector('button');
+    closeBtn.addEventListener('click', () => {
+      document.body.removeChild(notification);
+    });
+    
+    // Fechar ao clicar fora
+    setTimeout(() => {
+      const clickOutside = (e) => {
+        if (!notification.contains(e.target)) {
+          document.body.removeChild(notification);
+          document.removeEventListener('click', clickOutside);
+        }
+      };
+      document.addEventListener('click', clickOutside);
+    }, 100);
+    
+    document.body.appendChild(notification);
   }
 });

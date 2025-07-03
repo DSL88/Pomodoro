@@ -964,3 +964,142 @@ header h1 {
     gap: 4px;
   }
 }
+
+/* ========================================
+   BLOCOS DE POMODOROS
+   ======================================== */
+
+.task-blocks {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--card-bg-color);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px var(--shadow-color);
+  border: 1px solid var(--border-color);
+}
+
+.task-blocks-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.task-blocks-header h3 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.blocks-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 60px;
+  align-items: flex-start;
+}
+
+.no-task-message {
+  color: var(--text-color);
+  opacity: 0.6;
+  font-style: italic;
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+  width: 100%;
+}
+
+.pomodoro-block {
+  background: var(--primary-color);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85em;
+  font-weight: 500;
+  text-align: center;
+  min-width: 60px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.pomodoro-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.pomodoro-block .date {
+  display: block;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.pomodoro-block .time {
+  display: block;
+  font-size: 0.75em;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+.pomodoro-block .duration {
+  display: block;
+  font-size: 0.7em;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+/* Variações de cor para diferentes durações */
+.pomodoro-block.duration-25 {
+  background: var(--primary-color);
+}
+
+.pomodoro-block.duration-15 {
+  background: #28a745;
+}
+
+.pomodoro-block.duration-30 {
+  background: #fd7e14;
+}
+
+.pomodoro-block.duration-45 {
+  background: #6f42c1;
+}
+
+.pomodoro-block.duration-60 {
+  background: #dc3545;
+}
+
+/* Responsive para mobile */
+@media (max-width: 768px) {
+  .task-blocks {
+    margin-top: 15px;
+    padding: 15px;
+  }
+  
+  .pomodoro-block {
+    padding: 6px 10px;
+    font-size: 0.8em;
+    min-width: 55px;
+  }
+  
+  .blocks-container {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-blocks {
+    margin-top: 10px;
+    padding: 12px;
+  }
+  
+  .pomodoro-block {
+    padding: 5px 8px;
+    font-size: 0.75em;
+    min-width: 50px;
+  }
+  
+  .blocks-container {
+    gap: 4px;
+  }
+}
