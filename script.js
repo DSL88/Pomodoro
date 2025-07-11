@@ -48,31 +48,49 @@ document.addEventListener('DOMContentLoaded', () => {
   let deleteMode = false;
   let tasksToDelete = new Set();
   
-  // Função para obter IP (simplificada)
-  async function getUserIP() {
+  // Função para obter identificador de sessão consistente
+  async function getSessionIdentifier() {
     try {
+      // Primeiro, verificar se já temos um identificador salvo
+      let savedIdentifier = localStorage.getItem('pomodoro_user_identifier');
+      if (savedIdentifier) {
+        console.log(`🔑 Identificador salvo encontrado: ${savedIdentifier}`);
+        return savedIdentifier;
+      }
+      
       console.log('🌐 Tentando obter IP do usuário...');
-      const response = await fetch('https://api.ipify.org?format=json');
+      const response = await fetch('https://api.ipify.org?format=json', {
+        timeout: 3000 // 3 segundos de timeout
+      });
       const data = await response.json();
       
       if (data.ip) {
         console.log(`✅ IP obtido: ${data.ip}`);
+        localStorage.setItem('pomodoro_user_identifier', data.ip);
         return data.ip;
       }
     } catch (error) {
       console.warn('❌ Não foi possível obter IP:', error);
     }
     
-    // Fallback: usar fingerprint simples
-    const fingerprint = btoa(navigator.userAgent + navigator.language).substring(0, 16);
-    console.log(`🔍 Usando fingerprint: ${fingerprint}`);
+    // Fallback: gerar ou recuperar fingerprint persistente
+    let fingerprint = localStorage.getItem('pomodoro_fingerprint');
+    if (!fingerprint) {
+      fingerprint = 'user_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+      localStorage.setItem('pomodoro_fingerprint', fingerprint);
+      console.log(`🆕 Novo fingerprint gerado: ${fingerprint}`);
+    } else {
+      console.log(`🔍 Fingerprint recuperado: ${fingerprint}`);
+    }
+    
+    localStorage.setItem('pomodoro_user_identifier', fingerprint);
     return fingerprint;
   }
   
   // Inicializar sessão
   async function initSession() {
     try {
-      userIP = await getUserIP();
+      userIP = await getSessionIdentifier();
       currentSession = `pomodoro_session_${userIP}`;
       
       console.log(`👤 Sessão atual: ${currentSession}`);
@@ -80,19 +98,40 @@ document.addEventListener('DOMContentLoaded', () => {
       // Carregar dados da sessão
       const savedData = localStorage.getItem(currentSession);
       if (savedData) {
-        const sessionData = JSON.parse(savedData);
-        tasks = sessionData.tasks || [];
-        console.log(`📂 ${tasks.length} tarefas carregadas`);
+        try {
+          const sessionData = JSON.parse(savedData);
+          tasks = sessionData.tasks || [];
+          console.log(`📂 ${tasks.length} tarefas carregadas da sessão: ${currentSession}`);
+        } catch (parseError) {
+          console.error('❌ Erro ao parsear dados da sessão:', parseError);
+          console.log('🔄 Tentando recuperar do backup...');
+          if (!recoverFromBackup()) {
+            tasks = [];
+            console.log('🆕 Iniciando com lista vazia');
+          }
+        }
       } else {
         console.log('🆕 Nova sessão criada');
         // Migrar dados antigos se existirem
         const oldTasks = localStorage.getItem('tasks');
         if (oldTasks) {
-          tasks = JSON.parse(oldTasks);
-          saveTasks(); // Salvar na nova sessão
-          console.log('🔄 Dados migrados para nova sessão');
+          try {
+            tasks = JSON.parse(oldTasks);
+            saveTasks(); // Salvar na nova sessão
+            console.log('🔄 Dados migrados para nova sessão');
+          } catch (migrateError) {
+            console.error('❌ Erro ao migrar dados antigos:', migrateError);
+            if (!recoverFromBackup()) {
+              tasks = [];
+            }
+          }
+        } else if (!recoverFromBackup()) {
+          tasks = [];
         }
       }
+      
+      // Verificar integridade dos dados carregados
+      verifyDataIntegrity();
       
       // Migrar tarefas antigas para incluir histórico de pomodoros
       let needsMigration = false;
@@ -108,24 +147,69 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('🔧 Tarefas migradas para incluir histórico de pomodoros');
       }
       
+      // Debug: Listar todas as chaves do localStorage relacionadas ao pomodoro
+      console.log('🔍 Debug - Chaves do localStorage:');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes('pomodoro')) {
+          console.log(`  - ${key}: ${localStorage.getItem(key)?.substring(0, 100)}...`);
+        }
+      }
+      
     } catch (error) {
       console.error('❌ Erro ao inicializar sessão:', error);
       currentSession = 'pomodoro_default';
+      
+      // Tentar carregar dados padrão
+      const defaultData = localStorage.getItem(currentSession);
+      if (defaultData) {
+        const sessionData = JSON.parse(defaultData);
+        tasks = sessionData.tasks || [];
+        console.log(`📂 ${tasks.length} tarefas carregadas da sessão padrão`);
+      }
     }
   }
   
   // Salvar tarefas
   function saveTasks() {
     try {
+      if (!currentSession) {
+        console.error('❌ Sessão não inicializada, não é possível salvar');
+        return;
+      }
+      
       const sessionData = {
         tasks: tasks,
         lastUpdate: new Date().toISOString(),
-        userIP: userIP
+        userIP: userIP,
+        version: '2.0'
       };
+      
       localStorage.setItem(currentSession, JSON.stringify(sessionData));
-      console.log('💾 Dados salvos com sucesso');
+      console.log(`💾 ${tasks.length} tarefas salvas na sessão: ${currentSession}`);
+      console.log(`📊 Dados salvos: ${JSON.stringify(sessionData).length} bytes`);
+      
+      // Verificar se realmente foi salvo
+      const verification = localStorage.getItem(currentSession);
+      if (verification) {
+        console.log('✅ Verificação: dados foram salvos corretamente');
+      } else {
+        console.error('❌ Verificação: falha ao salvar dados');
+      }
+      
     } catch (error) {
       console.error('❌ Erro ao salvar dados:', error);
+      
+      // Tentar salvar em fallback
+      try {
+        localStorage.setItem('pomodoro_backup', JSON.stringify({
+          tasks: tasks,
+          timestamp: new Date().toISOString()
+        }));
+        console.log('💾 Backup salvo em pomodoro_backup');
+      } catch (backupError) {
+        console.error('❌ Erro ao salvar backup:', backupError);
+      }
     }
   }
   
@@ -947,4 +1031,91 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.body.appendChild(notification);
   }
+  
+  // Recuperar dados de backup se necessário
+  function recoverFromBackup() {
+    try {
+      const backup = localStorage.getItem('pomodoro_backup');
+      if (backup) {
+        const backupData = JSON.parse(backup);
+        if (backupData.tasks && Array.isArray(backupData.tasks)) {
+          tasks = backupData.tasks;
+          saveTasks(); // Salvar na sessão atual
+          console.log(`🔄 ${tasks.length} tarefas recuperadas do backup`);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao recuperar backup:', error);
+    }
+    return false;
+  }
+  
+  // Verificar integridade dos dados
+  function verifyDataIntegrity() {
+    try {
+      // Verificar se tasks é um array válido
+      if (!Array.isArray(tasks)) {
+        console.error('❌ Tasks não é um array válido');
+        tasks = [];
+        return false;
+      }
+      
+      // Verificar se cada task tem estrutura válida
+      let hasInvalidTasks = false;
+      tasks = tasks.filter(task => {
+        if (!task.id || !task.name) {
+          console.warn('⚠️ Tarefa inválida removida:', task);
+          hasInvalidTasks = true;
+          return false;
+        }
+        
+        // Garantir que pomodoroHistory existe
+        if (!task.pomodoroHistory) {
+          task.pomodoroHistory = [];
+        }
+        
+        // Garantir que timeSpent existe
+        if (typeof task.timeSpent !== 'number') {
+          task.timeSpent = 0;
+        }
+        
+        return true;
+      });
+      
+      if (hasInvalidTasks) {
+        saveTasks(); // Salvar dados limpos
+        console.log('🔧 Dados inválidos removidos e sessão salva');
+      }
+      
+      console.log(`✅ Integridade verificada: ${tasks.length} tarefas válidas`);
+      return true;
+      
+    } catch (error) {
+      console.error('❌ Erro na verificação de integridade:', error);
+      return false;
+    }
+  }
+  
+  // Salvar dados antes de sair da página
+  window.addEventListener('beforeunload', () => {
+    console.log('📤 Salvando dados antes de sair...');
+    saveTasks();
+  });
+  
+  // Salvar dados periodicamente (a cada 30 segundos)
+  setInterval(() => {
+    if (tasks.length > 0) {
+      saveTasks();
+      console.log('⏰ Salvamento automático realizado');
+    }
+  }, 30000);
+  
+  // Salvar quando a aba perde o foco
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      console.log('👁️ Aba perdeu foco, salvando dados...');
+      saveTasks();
+    }
+  });
 });
